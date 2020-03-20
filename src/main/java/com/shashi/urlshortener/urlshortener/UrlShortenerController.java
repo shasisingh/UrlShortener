@@ -17,12 +17,12 @@ import java.util.List;
 
 @RequestMapping("/v1/urlShortner")
 @RestController
-public class UrlShortnerResource {
+public class UrlShortenerController {
 
     private static final String DOMAIN_URL = "https://y.hi/";
     private final ShortnerRepository shortnerRepository;
 
-    public UrlShortnerResource(ShortnerRepository shortnerRepository) {
+    public UrlShortenerController(ShortnerRepository shortnerRepository) {
         this.shortnerRepository = shortnerRepository;
     }
 
@@ -41,11 +41,12 @@ public class UrlShortnerResource {
         UrlValidator urlValidator = new UrlValidator(new String[] { "https", "http" });
         if (urlValidator.isValid(url)) {
             String id = Hashing.murmur3_32().hashString(url, StandardCharsets.UTF_8).toString();
-            if (!checkUrlExists(id)) {
+            Shortener existing = shortnerRepository.findByShortUrl(id);
+            if (existing != null) {
+                return DOMAIN_URL + existing.getShortUrl();
+            } else {
                 return create(id, url);
             }
-            return DOMAIN_URL + id;
-
         }
         throw new IllegalStateException("Url is invalid " + url);
     }
@@ -60,11 +61,4 @@ public class UrlShortnerResource {
         return DOMAIN_URL + shortener.getShortUrl();
     }
 
-    public boolean checkUrlExists(String id) {
-        Shortener existing = shortnerRepository.findByShortUrl(id);
-        if (existing != null) {
-            return existing.getShortUrl().equals(id);
-        }
-        return false;
-    }
 }
